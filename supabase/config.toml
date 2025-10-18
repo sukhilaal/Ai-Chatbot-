@@ -1,1 +1,10 @@
 project_id = "uiohgifkntpxgpwjzhpi"
+
+[functions.chat]
+verify_jwt = true
+
+[functions.youtube-summary]
+verify_jwt = true
+
+[functions.pdf-summary]
+verify_jwt = true

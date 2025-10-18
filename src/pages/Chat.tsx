@@ -12,6 +12,9 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   created_at: string;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
 }
 
 const Chat = () => {
@@ -131,32 +134,67 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, file?: File) => {
     if (!conversationId || !user) return;
 
     setLoading(true);
 
     try {
-      // Save user message
-      const { error: messageError } = await supabase
-        .from("messages")
-        .insert({
+      // Check if message contains YouTube URL
+      const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\?\/\s]{11})/;
+      const isYouTubeUrl = youtubeRegex.test(content);
+
+      if (isYouTubeUrl) {
+        // Save user message
+        await supabase.from("messages").insert({
           conversation_id: conversationId,
           role: "user",
           content,
         });
 
-      if (messageError) throw messageError;
+        // Call YouTube summary function
+        const { data, error: ytError } = await supabase.functions.invoke("youtube-summary", {
+          body: {
+            videoUrl: content,
+            conversationId,
+          },
+        });
 
-      // Call AI
-      const { data, error: aiError } = await supabase.functions.invoke("chat", {
-        body: {
-          conversationId,
-          message: content,
-        },
-      });
+        if (ytError) throw ytError;
 
-      if (aiError) throw aiError;
+        toast.success("YouTube video summarized successfully!");
+      } else if (file) {
+        // Handle PDF upload
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("conversationId", conversationId);
+        formData.append("userId", user.id);
+
+        const { data, error: pdfError } = await supabase.functions.invoke("pdf-summary", {
+          body: formData,
+        });
+
+        if (pdfError) throw pdfError;
+
+        toast.success("PDF analyzed successfully!");
+      } else {
+        // Regular text message
+        await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          role: "user",
+          content,
+        });
+
+        // Call AI
+        const { data, error: aiError } = await supabase.functions.invoke("chat", {
+          body: {
+            conversationId,
+            message: content,
+          },
+        });
+
+        if (aiError) throw aiError;
+      }
 
       // Update conversation timestamp
       await supabase
@@ -170,8 +208,12 @@ const Chat = () => {
         toast.error("Rate limit exceeded. Please try again later.");
       } else if (error.message?.includes("402")) {
         toast.error("AI credits depleted. Please add credits to continue.");
+      } else if (error.message?.includes("No captions available")) {
+        toast.error("This YouTube video doesn't have captions available.");
+      } else if (error.message?.includes("Could not extract text")) {
+        toast.error("Could not extract text from PDF. Please ensure it's not a scanned document.");
       } else {
-        toast.error("Failed to send message");
+        toast.error(error.message || "Failed to send message");
       }
     } finally {
       setLoading(false);
@@ -210,6 +252,9 @@ const Chat = () => {
               role={message.role}
               content={message.content}
               isLatest={index === messages.length - 1}
+              fileUrl={message.file_url}
+              fileName={message.file_name}
+              fileType={message.file_type}
             />
           ))}
           
