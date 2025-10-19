@@ -160,7 +160,11 @@ const Chat = () => {
           },
         });
 
-        if (ytError) throw ytError;
+        if (ytError) {
+          // Extract error message from response
+          const errorMessage = (data as any)?.error || ytError.message || "Failed to summarize video";
+          throw new Error(errorMessage);
+        }
 
         toast.success("YouTube video summarized successfully!");
       } else if (file) {
@@ -174,7 +178,11 @@ const Chat = () => {
           body: formData,
         });
 
-        if (pdfError) throw pdfError;
+        if (pdfError) {
+          // Extract error message from response
+          const errorMessage = (data as any)?.error || pdfError.message || "Failed to analyze PDF";
+          throw new Error(errorMessage);
+        }
 
         toast.success("PDF analyzed successfully!");
       } else {
@@ -204,16 +212,18 @@ const Chat = () => {
 
     } catch (error: any) {
       console.error("Chat error:", error);
-      if (error.message?.includes("429")) {
+      const errorMsg = error.message || "Failed to send message";
+      
+      if (errorMsg.includes("429") || errorMsg.includes("Rate limit")) {
         toast.error("Rate limit exceeded. Please try again later.");
-      } else if (error.message?.includes("402")) {
+      } else if (errorMsg.includes("402") || errorMsg.includes("Payment required")) {
         toast.error("AI credits depleted. Please add credits to continue.");
-      } else if (error.message?.includes("No captions available")) {
-        toast.error("This YouTube video doesn't have captions available.");
-      } else if (error.message?.includes("Could not extract text")) {
-        toast.error("Could not extract text from PDF. Please ensure it's not a scanned document.");
+      } else if (errorMsg.includes("captions") || errorMsg.includes("transcript")) {
+        toast.error("This YouTube video doesn't have captions available. Try a different video.");
+      } else if (errorMsg.includes("corrupted") || errorMsg.includes("extract text")) {
+        toast.error("Could not read this PDF. It may be password-protected, scanned, or corrupted.");
       } else {
-        toast.error(error.message || "Failed to send message");
+        toast.error(errorMsg);
       }
     } finally {
       setLoading(false);
