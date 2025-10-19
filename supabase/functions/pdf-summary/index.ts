@@ -59,7 +59,8 @@ serve(async (req) => {
 
     console.log("File uploaded successfully:", uploadData.path);
 
-    // Get public URL
+    // Get public URL - but note the bucket is not public
+    // Users can only access files they uploaded (via RLS)
     const { data: { publicUrl } } = supabase.storage
       .from("chat-files")
       .getPublicUrl(fileName);

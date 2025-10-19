@@ -32,10 +32,16 @@ serve(async (req) => {
 
     console.log("Fetching transcript for video ID:", videoId);
 
-    // Fetch transcript using YouTube Transcript API
+    // Fetch transcript using YouTube Transcript API with proper headers
     const transcriptResponse = await fetch(
       `https://www.youtube.com/watch?v=${videoId}`,
-      { headers: { "Accept-Language": "en-US" } }
+      { 
+        headers: { 
+          "Accept-Language": "en-US",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+        } 
+      }
     );
 
     if (!transcriptResponse.ok) {
