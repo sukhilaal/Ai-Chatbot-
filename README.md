@@ -2,7 +2,7 @@
 
 A smart conversational AI built to understand user queries, provide meaningful responses, and adapt through learning. This project demonstrates **Natural Language Processing**, **machine learning**, and **interactive dialogue management**.  
 
-🌐 **Try it live:** [xai-scribe-hub.lovable.app](https://xai-scribe-hub.lovable.app/)
+🌐 **Try it live:** https://xai-scribe-hub.lovable.app/auth
 
 ***
 
